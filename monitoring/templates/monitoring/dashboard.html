@@ -1,0 +1,680 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mounting 2 Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 160px;
+            --right-panel-width: 180px;
+            --topbar-height: 60px;
+            --primary-blue: #1a237e;
+            --secondary-blue: #283593;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 0 20px;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .sidebar-menu li:hover {
+            background-color: var(--secondary-blue);
+        }
+
+        .sidebar-menu li.active {
+            background-color: var(--secondary-blue);
+        }
+
+        /* Topbar Styles */
+        .topbar {
+            position: fixed;
+            left: var(--sidebar-width);
+            right: 0;
+            top: 0;
+            height: var(--topbar-height);
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 100;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-info select,
+        .user-info button,
+        .station-selector select {
+            height: 34px;
+            font-size: 0.85rem;
+        }
+
+        .user-info .form-select,
+        .station-selector .form-select {
+            padding: 0 32px 0 12px;
+            background-position: right 8px center;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-right: var(--right-panel-width);
+            margin-top: var(--topbar-height);
+            padding: 12px;
+            height: calc(100vh - var(--topbar-height));
+            overflow-y: auto;
+        }
+
+        .row.g-4 {
+            margin-right: 0;
+            margin-left: 0;
+        }
+
+        /* Right Panel Styles */
+        .right-panel {
+            position: fixed;
+            right: 0;
+            top: var(--topbar-height);
+            bottom: 0;
+            width: var(--right-panel-width);
+            background-color: white;
+            border-left: 1px solid #e5e7eb;
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        .right-panel h3 {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .chart-type-selector {
+            margin-bottom: 10px;
+        }
+
+        .chart-type-selector label {
+            display: block;
+            margin-bottom: 4px;
+            color: #6b7280;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .chart-type-selector select {
+            width: 100%;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            background-color: #f9fafb;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100px;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin: 4px 0;
+        }
+
+        .metric-title {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 12px;
+            height: calc((100vh - var(--topbar-height) - 180px) / 2);
+            min-height: 200px;
+        }
+
+        .chart-container h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        #liveToggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4ade80;
+            transition: background-color 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        #liveToggle:not(.active) .status-dot {
+            background-color: #6b7280;
+            animation: none;
+        }
+
+        #liveToggle:not(.active) {
+            background-color: #4b5563;
+            border-color: #4b5563;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">Master Data</div>
+        <ul class="sidebar-menu">
+            <li>Part Type</li>
+            <li>Part Master</li>
+            <li>Part Group</li>
+            <li>Work Plan Data</li>
+            <li>Production Means</li>
+            <li>Orders</li>
+            <li>Maintenance</li>
+            <li>BOM</li>
+            <li>Tracking</li>
+            <li>BI</li>
+            <li class="active">IIOT</li>
+            <li>KPI</li>
+            <li>Low-Code</li>
+        </ul>
+    </div>
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="station-selector">
+            <select class="form-select" id="stationSelect">
+                <option selected>Mounting 2</option>
+                <option>Mounting 1</option>
+                <option>Mounting 3</option>
+            </select>
+        </div>
+        <div class="user-info">
+            <button id="liveToggle" class="btn btn-primary active">
+                <span class="status-dot"></span>
+                Live Data
+            </button>
+            <select class="form-select" id="timeRange">
+                <option selected>Last 7 days</option>
+                <option>Last 24 hours</option>
+                <option>Last hour</option>
+            </select>
+            <button class="btn btn-primary" onclick="refreshData()">Refresh</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-title">Temperature</div>
+                    <div class="metric-value" id="temperature">--°C</div>
+                    <div>🌡️</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-title">Humidity</div>
+                    <div class="metric-value" id="humidity">--%</div>
+                    <div>💧</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-title">Pressure</div>
+                    <div class="metric-value" id="pressure">-- Bar</div>
+                    <div>📊</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-title">Energy</div>
+                    <div class="metric-value" id="energy">-- J</div>
+                    <div>⚡</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6 mb-3">
+                <div class="chart-container">
+                    <h3>Temperature (°C)</h3>
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="chart-container">
+                    <h3>Humidity (%)</h3>
+                    <canvas id="humidityChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="chart-container">
+                    <h3>Pressure (Bar)</h3>
+                    <canvas id="pressureChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="chart-container">
+                    <h3>Vibration (Hz)</h3>
+                    <canvas id="vibrationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+        <h3>Chart Settings</h3>
+        
+        <div class="chart-type-selector">
+            <label>Temperature</label>
+            <select class="form-select" id="tempChartType" onchange="updateChartType('temperature', this.value)">
+                <option value="line">Line</option>
+                <option value="area">Area</option>
+                <option value="bar">Bar</option>
+                <option value="radar">Radar</option>
+            </select>
+        </div>
+
+        <div class="chart-type-selector">
+            <label>Humidity</label>
+            <select class="form-select" id="humidityChartType" onchange="updateChartType('humidity', this.value)">
+                <option value="line">Line</option>
+                <option value="area">Area</option>
+                <option value="bar">Bar</option>
+                <option value="radar">Radar</option>
+            </select>
+        </div>
+
+        <div class="chart-type-selector">
+            <label>Pressure</label>
+            <select class="form-select" id="pressureChartType" onchange="updateChartType('pressure', this.value)">
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="radar">Radar</option>
+            </select>
+        </div>
+
+        <div class="chart-type-selector">
+            <label>Vibration</label>
+            <select class="form-select" id="vibrationChartType" onchange="updateChartType('vibration', this.value)">
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="radar">Radar</option>
+            </select>
+        </div>
+
+        <div class="mt-4">
+            <h3>Export Data</h3>
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-primary" onclick="exportData('csv')">Export CSV</button>
+                <button class="btn btn-outline-primary" onclick="exportData('pdf')">Export PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let temperatureChart, humidityChart, pressureChart, vibrationChart;
+        let isLive = true;
+        let updateInterval;
+
+        function getChartOptions(chartType) {
+            const baseOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            };
+
+            // Specific options for different chart types
+            if (chartType === 'radar') {
+                return {
+                    ...baseOptions,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            ticks: {
+                                backdropColor: 'transparent'
+                            }
+                        }
+                    }
+                };
+            } else if (chartType === 'bar') {
+                return {
+                    ...baseOptions,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7
+                };
+            } else if (chartType === 'area') {
+                return baseOptions;
+            }
+
+            return baseOptions;
+        }
+
+        function getDatasetConfig(chartType, color) {
+            const baseConfig = {
+                borderColor: color,
+                data: [],
+            };
+
+            switch (chartType) {
+                case 'line':
+                    return {
+                        ...baseConfig,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        fill: false
+                    };
+                case 'bar':
+                    return {
+                        ...baseConfig,
+                        backgroundColor: color + '80',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    };
+                case 'area':
+                    return {
+                        ...baseConfig,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: color + '20'
+                    };
+                case 'radar':
+                    return {
+                        ...baseConfig,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: color + '20'
+                    };
+                default:
+                    return baseConfig;
+            }
+        }
+
+        function initializeCharts() {
+
+            // Initialize Temperature Chart
+            const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+            const tempDataset = getDatasetConfig('line', '#2563eb');
+            temperatureChart = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [tempDataset]
+                },
+                options: getChartOptions('line')
+            });
+
+            // Initialize Humidity Chart
+            const humCtx = document.getElementById('humidityChart').getContext('2d');
+            const humDataset = getDatasetConfig('line', '#0891b2');
+            humidityChart = new Chart(humCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [humDataset]
+                },
+                options: getChartOptions('line')
+            });
+
+            // Initialize Pressure Chart
+            const pressureCtx = document.getElementById('pressureChart').getContext('2d');
+            const pressureDataset = getDatasetConfig('line', '#10b981');
+            pressureChart = new Chart(pressureCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [pressureDataset]
+                },
+                options: getChartOptions('line')
+            });
+
+            // Initialize Vibration Chart
+            const vibrationCtx = document.getElementById('vibrationChart').getContext('2d');
+            const vibrationDataset = getDatasetConfig('line', '#f59e0b');
+            vibrationChart = new Chart(vibrationCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [vibrationDataset]
+                },
+                options: getChartOptions('line')
+            });
+        }
+
+        async function updateDashboard() {
+            try {
+                const station = document.getElementById('stationSelect').value;
+                const timeRange = document.getElementById('timeRange').value;
+                
+                const response = await fetch(`/api/station-data/?station=${encodeURIComponent(station)}&range=${encodeURIComponent(timeRange)}`);
+                const data = await response.json();
+
+                // Update current values
+                document.getElementById('temperature').textContent = `${data.current.temperature}°C`;
+                document.getElementById('humidity').textContent = `${data.current.humidity}%`;
+                document.getElementById('pressure').textContent = `${data.current.pressure} Bar`;
+                document.getElementById('energy').textContent = `${data.current.energy} J`;
+
+                // Update charts
+                const timestamps = data.historical.map(d => d.timestamp);
+                const temperatures = data.historical.map(d => d.temperature);
+                const humidities = data.historical.map(d => d.humidity);
+
+                const pressures = data.historical.map(d => d.pressure);
+                const vibrations = data.historical.map(d => d.vibration);
+
+                temperatureChart.data.labels = timestamps;
+                temperatureChart.data.datasets[0].data = temperatures;
+                temperatureChart.update();
+
+                humidityChart.data.labels = timestamps;
+                humidityChart.data.datasets[0].data = humidities;
+                humidityChart.update();
+
+                pressureChart.data.labels = timestamps;
+                pressureChart.data.datasets[0].data = pressures;
+                pressureChart.update();
+
+                vibrationChart.data.labels = timestamps;
+                vibrationChart.data.datasets[0].data = vibrations;
+                vibrationChart.update();
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+            }
+        }
+
+        function refreshData() {
+            updateDashboard();
+        }
+
+        function startLiveUpdates() {
+            if (!updateInterval) {
+                updateInterval = setInterval(updateDashboard, 5000);
+            }
+        }
+
+        function stopLiveUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+
+        // Initialize charts when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            updateDashboard();
+            startLiveUpdates();
+
+            // Initialize live toggle button
+            const liveToggle = document.getElementById('liveToggle');
+            liveToggle.addEventListener('click', function() {
+                isLive = !isLive;
+                this.classList.toggle('active');
+                
+                if (isLive) {
+                    this.innerHTML = '<span class="status-dot"></span>Live Data';
+                    updateDashboard();
+                    startLiveUpdates();
+                } else {
+                    this.innerHTML = '<span class="status-dot"></span>Static Data';
+                    stopLiveUpdates();
+                }
+            });
+        });
+
+        // Add event listeners for station and time range changes
+        document.getElementById('stationSelect').addEventListener('change', updateDashboard);
+        document.getElementById('timeRange').addEventListener('change', updateDashboard);
+
+        // Function to update chart type
+        function updateChartType(metric, chartType) {
+            let chart, element, color;
+            
+            if (metric === 'temperature') {
+                chart = temperatureChart;
+                element = 'temperatureChart';
+                color = '#2563eb';
+            } else if (metric === 'humidity') {
+                chart = humidityChart;
+                element = 'humidityChart';
+                color = '#0891b2';
+            } else if (metric === 'pressure') {
+                chart = pressureChart;
+                element = 'pressureChart';
+                color = '#10b981';
+            } else if (metric === 'vibration') {
+                chart = vibrationChart;
+                element = 'vibrationChart';
+                color = '#f59e0b';
+            } else {
+                return;
+            }
+
+            const currentData = chart.data.labels;
+            const currentValues = chart.data.datasets[0].data;
+            
+            chart.destroy();
+            const ctx = document.getElementById(element).getContext('2d');
+            const dataset = getDatasetConfig(chartType, color);
+            dataset.data = currentValues;
+
+            const newChart = new Chart(ctx, {
+                type: chartType === 'area' ? 'line' : chartType,
+                data: {
+                    labels: currentData,
+                    datasets: [dataset]
+                },
+                options: getChartOptions(chartType)
+            });
+
+            if (metric === 'temperature') {
+                temperatureChart = newChart;
+            } else {
+                humidityChart = newChart;
+            }
+        }
+
+        // Function to export data
+        function exportData(format) {
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `mounting2_data_${timestamp}.${format}`;
+            alert(`Exporting data as ${format.toUpperCase()}... (Demo)`);
+        }
+    </script>
+</body>
+</html> 
