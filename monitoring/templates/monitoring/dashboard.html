@@ -70,14 +70,15 @@
         /* Topbar Styles */
         .topbar {
             background-color: white;
-            padding: 1rem;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 6px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: flex-end;
             align-items: center;
             margin-left: calc(var(--sidebar-width) + 20px);
+            height: 50px;
         }
 
         .selector-group {
@@ -121,9 +122,11 @@
             margin-left: var(--sidebar-width);
             margin-right: var(--right-panel-width);
             margin-top: var(--topbar-height);
-            padding: 12px;
-            height: calc(100vh - var(--topbar-height));
+            padding: 10px;
+            height: calc(100vh - 60px);
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .row.g-4 {
@@ -175,17 +178,15 @@
 
         .metric-card {
             background: white;
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 6px;
+            padding: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             text-align: center;
-            height: 100%;
+            height: 70px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-height: 100px;
-            position: relative;
-            cursor: move;
+            margin-bottom: 8px;
         }
 
         .metric-card::before {
@@ -198,26 +199,46 @@
         }
 
         .metric-value {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: bold;
-            margin: 4px 0;
+            margin: 3px 0;
         }
 
         .metric-title {
             color: #666;
-            font-size: 0.85rem;
-            margin-bottom: 0;
-            font-weight: 500;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+
+        .metrics-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .metric-item {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 8px;
+            height: calc(100vh - 180px);
+            min-height: 400px;
+            overflow: visible;
         }
 
         .chart-container {
             background: white;
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 6px;
+            padding: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-top: 12px;
-            height: calc((100vh - var(--topbar-height) - 180px) / 2);
-            min-height: 200px;
+            height: 100%;
+            min-height: 220px;
             position: relative;
         }
 
@@ -232,8 +253,8 @@
         }
 
         .chart-container h3 {
-            font-size: 1rem;
-            margin-bottom: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
             color: #374151;
         }
 
@@ -322,36 +343,36 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <div class="row g-4" id="metricsContainer">
-            <div class="col-md-3">
+        <div class="metrics-row">
+            <div class="metric-item">
                 <div class="metric-card">
                     <div class="metric-title">Temperature</div>
                     <div class="metric-value" id="temperature">--°C</div>
                     <div>🌡️</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="metric-item">
                 <div class="metric-card">
                     <div class="metric-title">Humidity</div>
                     <div class="metric-value" id="humidity">--%</div>
                     <div>💧</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="metric-item">
                 <div class="metric-card">
                     <div class="metric-title">Pressure</div>
                     <div class="metric-value" id="pressure">-- Bar</div>
                     <div>📊</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="metric-item">
                 <div class="metric-card">
                     <div class="metric-title">Energy</div>
                     <div class="metric-value" id="energy">-- J</div>
                     <div>⚡</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="metric-item">
                 <div class="metric-card">
                     <div class="metric-title">Vibration</div>
                     <div class="metric-value" id="vibration">-- Hz</div>
@@ -360,30 +381,22 @@
             </div>
         </div>
 
-        <div class="row mt-4" id="chartsContainer">
-            <div class="col-md-6 mb-3">
-                <div class="chart-container">
-                    <h3>Temperature (°C)</h3>
-                    <canvas id="temperatureChart"></canvas>
-                </div>
+        <div class="charts-container">
+            <div class="chart-container">
+                <h3>Temperature (°C)</h3>
+                <canvas id="temperatureChart"></canvas>
             </div>
-            <div class="col-md-6 mb-3">
-                <div class="chart-container">
-                    <h3>Humidity (%)</h3>
-                    <canvas id="humidityChart"></canvas>
-                </div>
+            <div class="chart-container">
+                <h3>Humidity (%)</h3>
+                <canvas id="humidityChart"></canvas>
             </div>
-            <div class="col-md-6 mb-3">
-                <div class="chart-container">
-                    <h3>Pressure (Bar)</h3>
-                    <canvas id="pressureChart"></canvas>
-                </div>
+            <div class="chart-container">
+                <h3>Pressure (Bar)</h3>
+                <canvas id="pressureChart"></canvas>
             </div>
-            <div class="col-md-6 mb-3">
-                <div class="chart-container">
-                    <h3>Vibration (Hz)</h3>
-                    <canvas id="vibrationChart"></canvas>
-                </div>
+            <div class="chart-container">
+                <h3>Vibration (Hz)</h3>
+                <canvas id="vibrationChart"></canvas>
             </div>
         </div>
     </div>
