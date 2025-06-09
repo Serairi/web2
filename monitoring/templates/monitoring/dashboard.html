@@ -69,37 +69,51 @@
 
         /* Topbar Styles */
         .topbar {
-            position: fixed;
-            left: var(--sidebar-width);
-            right: 0;
-            top: 0;
-            height: var(--topbar-height);
             background-color: white;
+            padding: 1rem;
+            border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
             display: flex;
+            justify-content: flex-end;
             align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            z-index: 100;
+            margin-left: calc(var(--sidebar-width) + 20px);
         }
 
-        .user-info {
+        .selector-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .form-select {
+            min-width: 160px;
+            height: 38px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 0 12px;
+            background-color: white;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            height: 38px;
+            padding: 0 16px;
+            border-radius: 6px;
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .user-info select,
-        .user-info button,
-        .station-selector select {
-            height: 34px;
-            font-size: 0.85rem;
+        #liveToggle {
+            background-color: #10B981;
+            border-color: #10B981;
         }
 
-        .user-info .form-select,
-        .station-selector .form-select {
-            padding: 0 32px 0 12px;
-            background-position: right 8px center;
+        #liveToggle:not(.active) {
+            background-color: #6B7280;
+            border-color: #6B7280;
         }
 
         /* Main Content Styles */
@@ -223,15 +237,6 @@
             color: #374151;
         }
 
-        #liveToggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            font-size: 14px;
-            margin-right: 10px;
-        }
-
         .status-dot {
             width: 8px;
             height: 8px;
@@ -244,11 +249,6 @@
         #liveToggle:not(.active) .status-dot {
             background-color: #6b7280;
             animation: none;
-        }
-
-        #liveToggle:not(.active) {
-            background-color: #4b5563;
-            border-color: #4b5563;
         }
 
         @keyframes pulse {
@@ -289,12 +289,24 @@
 
     <!-- Topbar -->
     <div class="topbar">
-        <div class="station-selector">
+        <div class="selector-group">
+            <select class="form-select" id="sortBy">
+                <option value="">Select sorting option...</option>
+                <option value="machine_type">Sort by Machine</option>
+                <option value="temperature">Sort by Temperature</option>
+                <option value="humidity">Sort by Humidity</option>
+                <option value="pressure">Sort by Pressure</option>
+                <option value="energy">Sort by Energy</option>
+                <option value="timestamp">Sort by Time</option>
+            </select>
+            <select class="form-select" id="machineTypeSelect" style="display: none;">
+                <option value="">Select machine type...</option>
+                <option value="mounting">Mounting Stations</option>
+                <option value="assembly">Assembly Lines</option>
+            </select>
             <select class="form-select" id="stationSelect">
                 <option value="">Select a station...</option>
             </select>
-        </div>
-        <div class="user-info">
             <button id="liveToggle" class="btn btn-primary active">
                 <span class="status-dot"></span>
                 Live Data
@@ -303,14 +315,6 @@
                 <option selected>Last 7 days</option>
                 <option>Last 24 hours</option>
                 <option>Last hour</option>
-            </select>
-            <select class="form-select" id="sortBy">
-                <option value="machine_id">Sort by Machine ID</option>
-                <option value="temperature">Sort by Temperature</option>
-                <option value="humidity">Sort by Humidity</option>
-                <option value="pressure">Sort by Pressure</option>
-                <option value="energy">Sort by Energy</option>
-                <option value="timestamp">Sort by Time</option>
             </select>
             <button class="btn btn-primary" onclick="refreshData()">Refresh</button>
         </div>
@@ -583,18 +587,28 @@
             });
         }
 
-        // Function to load stations
-        async function loadStations() {
+        // Function to load stations based on machine type
+        async function loadStationsByType(machineType) {
             try {
                 const response = await fetch('/api/stations/');
                 const data = await response.json();
                 stations = data.stations;
                 
+                // Filter stations based on machine type
+                const filteredStations = stations.filter(station => {
+                    if (machineType === 'mounting') {
+                        return station.name.toLowerCase().includes('mounting');
+                    } else if (machineType === 'assembly') {
+                        return station.name.toLowerCase().includes('assembly');
+                    }
+                    return true;
+                });
+                
                 // Populate station selector
                 const stationSelect = document.getElementById('stationSelect');
                 stationSelect.innerHTML = '<option value="">Select a station...</option>';
                 
-                stations.forEach(station => {
+                filteredStations.forEach(station => {
                     const option = document.createElement('option');
                     option.value = station.id;
                     option.textContent = station.name;
@@ -603,12 +617,6 @@
                     }
                     stationSelect.appendChild(option);
                 });
-
-                // Select first station if none selected
-                if (stationSelect.value === "" && stations.length > 0) {
-                    stationSelect.value = stations[0].id;
-                    updateDashboard();
-                }
             } catch (error) {
                 console.error('Error loading stations:', error);
             }
@@ -676,10 +684,10 @@
             }
         }
 
-        // Initialize charts when page loads
+        // Initialize the dashboard
         document.addEventListener('DOMContentLoaded', () => {
             initializeCharts();
-            loadStations(); // Load stations first
+            // Don't load stations immediately, wait for user selection
             startLiveUpdates();
 
             // Initialize live toggle button
@@ -699,10 +707,33 @@
             });
         });
 
-        // Add event listeners for station, time range, and sort changes
-        document.getElementById('stationSelect').addEventListener('change', updateDashboard);
-        document.getElementById('timeRange').addEventListener('change', updateDashboard);
-        document.getElementById('sortBy').addEventListener('change', updateDashboard);
+        // Add event listeners for sorting and machine type selection
+        document.getElementById('sortBy').addEventListener('change', function() {
+            const machineTypeSelect = document.getElementById('machineTypeSelect');
+            const stationSelect = document.getElementById('stationSelect');
+            
+            if (this.value === 'machine_type') {
+                machineTypeSelect.style.display = 'inline-block';
+                stationSelect.style.display = 'none';
+                machineTypeSelect.value = ''; // Reset machine type selection
+            } else {
+                machineTypeSelect.style.display = 'none';
+                stationSelect.style.display = 'inline-block';
+                loadStationsByType(machineTypeSelect.value);
+            }
+            updateDashboard();
+        });
+
+        document.getElementById('machineTypeSelect').addEventListener('change', function() {
+            const stationSelect = document.getElementById('stationSelect');
+            if (this.value) {
+                stationSelect.style.display = 'inline-block';
+                loadStationsByType(this.value);
+            } else {
+                stationSelect.style.display = 'none';
+            }
+            updateDashboard();
+        });
 
         // Function to update chart type
         function updateChartType(metric, chartType) {
