@@ -5,37 +5,6 @@ from .models import Station, Measurement
 from django.utils import timezone
 from datetime import timedelta
 import random  # For demo data
-import sys
-import os
-import pandas as pd
-
-# Add the elastic-faker-pipeline directory to Python path
-ELASTIC_FAKER_PATH = "c:/elastic-faker-pipeline"
-if ELASTIC_FAKER_PATH not in sys.path:
-    sys.path.append(ELASTIC_FAKER_PATH)
-
-# Import ML components
-from predict_anomalies import load_model, predict_anomalies
-from generate_test_data import generate_sensor_data
-from train_model import train_isolation_forest
-
-# Try to load the model, if not found, train it first
-try:
-    ml_model = load_model()
-except FileNotFoundError:
-    print("Model not found, training new model...")
-    # Generate some initial data for training
-    training_data = []
-    for _ in range(1000):  # Generate 1000 samples for training
-        reading = generate_sensor_data(0)
-        training_data.append(reading)
-    
-    # Convert to DataFrame
-    df = pd.DataFrame(training_data)
-    
-    # Train the model
-    ml_model = train_isolation_forest(df)
-    print("Model training completed!")
 
 class DashboardView(TemplateView):
     template_name = 'monitoring/dashboard.html'
@@ -55,43 +24,24 @@ def get_station_data(request):
     time_range = request.GET.get('range', '7days')
     sort_by = request.GET.get('sort', 'id')  # Default sort by ID
     
-    # Generate data using ML generator
-    reading = generate_sensor_data(0)  # ID doesn't matter for single reading
+    # Generate random data for demo
+    reading = {
+        'temperature': round(random.uniform(20, 25), 1),
+        'humidity': round(random.uniform(40, 60), 1),
+        'pressure': round(random.uniform(980, 1020), 1),
+        'energy': round(random.uniform(650, 750), 1),
+        'vibration': round(random.uniform(20, 40), 1)
+    }
     
-    # Get prediction
-    data = pd.DataFrame([reading])
-    scores, is_anomaly = predict_anomalies(ml_model, data)
-    
-    # Determine which sensor is anomalous
-    anomalous_sensor = None
-    if is_anomaly[0]:
-        thresholds = {
-            'Temperature': {'min': 18, 'max': 26},
-            'Humidity': {'min': 30, 'max': 70},
-            'Pressure': {'min': 970, 'max': 1030},
-            'Energy': {'min': 600, 'max': 800}
-        }
-        
-        if reading['temperature'] < thresholds['Temperature']['min'] or reading['temperature'] > thresholds['Temperature']['max']:
-            anomalous_sensor = 'Temperature'
-        elif reading['humidity'] < thresholds['Humidity']['min'] or reading['humidity'] > thresholds['Humidity']['max']:
-            anomalous_sensor = 'Humidity'
-        elif reading['pressure'] < thresholds['Pressure']['min'] or reading['pressure'] > thresholds['Pressure']['max']:
-            anomalous_sensor = 'Pressure'
-        elif reading['energy'] < thresholds['Energy']['min'] or reading['energy'] > thresholds['Energy']['max']:
-            anomalous_sensor = 'Energy'
-    
-    # Prepare current data with ML predictions
+    # Prepare current data
     current_data = {
         'machine_id': station_id,
         'temperature': reading['temperature'],
         'humidity': reading['humidity'],
         'pressure': reading['pressure'],
         'energy': reading['energy'],
-        'is_anomaly': bool(is_anomaly[0]),
-        'anomaly_score': float(scores[0]),
-        'machine': "Mounting 2",
-        'sensor': anomalous_sensor
+        'vibration': reading['vibration'],
+        'machine': "Mounting 2"
     }
     
     # Generate historical data
@@ -112,21 +62,29 @@ def get_station_data(request):
     historical_data = []
     for i in range(points):
         time = start_time + (interval * i)
-        reading = generate_sensor_data(i)
+        reading = {
+            'temperature': round(random.uniform(20, 25), 1),
+            'humidity': round(random.uniform(40, 60), 1),
+            'pressure': round(random.uniform(980, 1020), 1),
+            'energy': round(random.uniform(650, 750), 1),
+            'vibration': round(random.uniform(20, 40), 1)
+        }
         historical_data.append({
             'machine_id': station_id,
             'timestamp': time.strftime('%Y-%m-%d %H:%M'),
             'temperature': reading['temperature'],
             'humidity': reading['humidity'],
             'pressure': reading['pressure'],
-            'energy': reading['energy']
+            'energy': reading['energy'],
+            'vibration': reading['vibration']
         })
 
     # Sort historical data if requested
-    if sort_by in ['machine_id', 'temperature', 'humidity', 'pressure', 'energy', 'timestamp']:
+    if sort_by in ['machine_id', 'temperature', 'humidity', 'pressure', 'energy', 'vibration', 'timestamp']:
         historical_data.sort(key=lambda x: x[sort_by])
 
     return JsonResponse({
         'current': current_data,
         'historical': historical_data
     })
+
